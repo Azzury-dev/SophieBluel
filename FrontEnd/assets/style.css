@@ -123,8 +123,37 @@ li:hover {
 }
 #portfolio h2 {
 	text-align: center;
-	margin-bottom: 1em;
+	margin-bottom: 1.5em;
 }
+
+.filters {
+	display: flex;
+	gap: 12px;
+	justify-content: center;
+	margin-bottom: 3.5em;
+}
+
+.filter-btn {
+  padding: 10px 22px;
+  border-radius: 999px;
+  border: 2px solid #1f6f5b;
+  background: transparent;
+  color: #1f6f5b;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.filter-btn:hover {
+  background: #1f6f5b;
+  color: #fff;
+}
+
+.filter-btn.active {
+  background: #1f6f5b;
+  color: #fff;
+}
+
 .gallery {
 	width: 100%;
 	display: grid;
