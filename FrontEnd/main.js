@@ -1,5 +1,6 @@
 const gallery = document.querySelector(".gallery");
 const buttons = document.querySelectorAll(".filter-btn");
+const authLink = document.getElementById("auth-link");
 
 let allWorks = [];
 
@@ -55,5 +56,27 @@ buttons.forEach(btn => {
         }
     });
 });
+
+function isLoggedIn() {
+    return !!localStorage.getItem("token");
+}
+
+function updateAuthUi() {
+    if (isLoggedIn()) {
+        authLink.textContent = "logout";
+        authLink.href = "#";
+        authLink.addEventListener("click", (e) => {
+            e.preventDefault();
+            localStorage.removeItem("token");
+            updateAuthUi();
+        });
+    } else {
+        authLink.textContent = "login";
+        authLink.href = "login.html";
+    }
+}
+
+updateAuthUi();
+
 
 fetchWorks();

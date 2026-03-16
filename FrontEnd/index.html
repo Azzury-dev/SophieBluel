@@ -20,7 +20,7 @@
 			<ul>
 				<li>projets</li>
 				<li>contact</li>
-				<li><a href="login.html">login</a></li>
+				<li><a id="auth-link" href="login.html">login</a></li>
 				<li><img src="./assets/icons/instagram.png" alt="Instagram"></li>
 			</ul>
 		</nav>
@@ -42,7 +42,14 @@
 			</article>
 		</section>
 		<section id="portfolio">
-			<h2>Mes Projets</h2>
+			<div class="portfolio-title">
+				<h2>Mes Projets</h2>
+				<button id="edit-projects">
+					<img src="./assets/icons/edit.png" alt="Edit Icon">
+					modifier
+				</button>
+			</div>
+		
 			<div class="filters">
 				<button class="filter-btn active">Tous</button>
 				<button class="filter-btn">Objects</button>
@@ -51,6 +58,7 @@
 			</div>
 			<div class="gallery"></div>
 		</section>
+		
 		<section id="contact">
 			<h2>Contact</h2>
 			<p>Vous avez un projet ? Discutons-en !</p>
