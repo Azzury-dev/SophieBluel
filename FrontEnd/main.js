@@ -35,8 +35,6 @@ async function fetchWorks() {
     }
 }
 
-
-
 buttons.forEach(btn => {
     btn.addEventListener("click", () => {
         buttons.forEach(b => b.classList.remove("active"));
