@@ -1,3 +1,42 @@
+const gallery = document.querySelector(".gallery");
+const buttons = document.querySelectorAll(".filter-btn");
+
+let allWorks = [];
+
+function displayWorks(works) {
+    gallery.innerHTML = "";
+    works.forEach(work => {
+        const figure = document.createElement("figure");
+        const img = document.createElement("img");
+        img.src = work.imageUrl;
+        img.alt = work.title;
+        const figcaption = document.createElement("figcaption");
+        figcaption.textContent = work.title;
+
+        figure.appendChild(img);
+        figure.appendChild(figcaption);
+        gallery.appendChild(figure);
+    });
+}
+
+async function fetchWorks() {
+    try {
+        const response = await fetch("http://localhost:5678/api/works");
+        
+        if (!response.ok) {
+            throw new Error("Erreur API");
+        }
+
+        const works = await response.json();
+        allWorks = works;
+        displayWorks(allWorks);
+    } catch (err) {
+        console.error(err);
+    }
+}
+
+fetchWorks();
+
 fetch("http://localhost:5678/api/works")
     .then(res => {
         if (!res.ok) {
@@ -11,8 +50,6 @@ fetch("http://localhost:5678/api/works")
     .catch(err => {
         console.error(err);
     });
-
-const buttons = document.querySelectorAll(".filter-btn");
 
 buttons.forEach(btn => {
     btn.addEventListener("click", () => {
