@@ -26,24 +26,89 @@ const uploadHelpText = document.getElementById("upload-help-text");
 
 let allWorks = [];
 
+/* ------------------------- */
+/* Helpers                   */
+/* ------------------------- */
+
+function isLoggedIn() {
+    return !!localStorage.getItem("token");
+}
+
+function getActiveFilterName() {
+    const activeButton = document.querySelector(".filter-btn.active");
+    return activeButton ? activeButton.textContent.trim() : "Tous";
+}
+
+function workMatchesFilter(work, filterName = getActiveFilterName()) {
+    if (filterName === "Tous") return true;
+    if (filterName === "Objects") return work.categoryId === 1;
+    if (filterName === "Appartement") return work.categoryId === 2;
+    if (filterName === "Hotel & restaurants") return work.categoryId === 3;
+    return true;
+}
+
+function getFilteredWorks() {
+    const filterName = getActiveFilterName();
+    return allWorks.filter((work) => workMatchesFilter(work, filterName));
+}
+
+/* ------------------------- */
+/* DOM creation              */
+/* ------------------------- */
+
+function createGalleryWorkElement(work) {
+    const figure = document.createElement("figure");
+    figure.dataset.id = work.id;
+
+    const img = document.createElement("img");
+    img.src = work.imageUrl;
+    img.alt = work.title;
+
+    const figcaption = document.createElement("figcaption");
+    figcaption.textContent = work.title;
+
+    figure.appendChild(img);
+    figure.appendChild(figcaption);
+
+    return figure;
+}
+
+function createModalWorkElement(work) {
+    const item = document.createElement("div");
+    item.classList.add("modal-gallery-item");
+    item.dataset.id = work.id;
+
+    const img = document.createElement("img");
+    img.src = work.imageUrl;
+    img.alt = work.title;
+
+    const deleteBtn = document.createElement("button");
+    deleteBtn.classList.add("delete-photo");
+    deleteBtn.type = "button";
+    deleteBtn.dataset.id = work.id;
+    deleteBtn.setAttribute("aria-label", `Supprimer ${work.title}`);
+
+    const trashIcon = document.createElement("img");
+    trashIcon.src = "./assets/icons/trash.png";
+    trashIcon.alt = "Supprimer";
+
+    deleteBtn.appendChild(trashIcon);
+    item.appendChild(img);
+    item.appendChild(deleteBtn);
+
+    return item;
+}
+
+/* ------------------------- */
+/* Display                   */
+/* ------------------------- */
+
 function displayWorks(works) {
     if (!gallery) return;
 
     gallery.innerHTML = "";
-
     works.forEach((work) => {
-        const figure = document.createElement("figure");
-
-        const img = document.createElement("img");
-        img.src = work.imageUrl;
-        img.alt = work.title;
-
-        const figcaption = document.createElement("figcaption");
-        figcaption.textContent = work.title;
-
-        figure.appendChild(img);
-        figure.appendChild(figcaption);
-        gallery.appendChild(figure);
+        gallery.appendChild(createGalleryWorkElement(work));
     });
 }
 
@@ -51,33 +116,43 @@ function displayModalWorks(works) {
     if (!modalGallery) return;
 
     modalGallery.innerHTML = "";
-
     works.forEach((work) => {
-        const item = document.createElement("div");
-        item.classList.add("modal-gallery-item");
-
-        const img = document.createElement("img");
-        img.src = work.imageUrl;
-        img.alt = work.title;
-
-        const deleteBtn = document.createElement("button");
-        deleteBtn.classList.add("delete-photo");
-        deleteBtn.setAttribute("aria-label", `Supprimer ${work.title}`);
-        deleteBtn.dataset.id = work.id;
-        deleteBtn.type = "button";
-
-        const trashIcon = document.createElement("img");
-        trashIcon.src = "./assets/icons/trash.png";
-        trashIcon.alt = "Supprimer";
-
-        deleteBtn.appendChild(trashIcon);
-        item.appendChild(img);
-        item.appendChild(deleteBtn);
-        modalGallery.appendChild(item);
+        modalGallery.appendChild(createModalWorkElement(work));
     });
-
-    initDeleteButtons();
 }
+
+function addWorkToDom(work) {
+    if (!work) return;
+
+    if (modalGallery) {
+        modalGallery.appendChild(createModalWorkElement(work));
+    }
+
+    if (gallery && workMatchesFilter(work)) {
+        gallery.appendChild(createGalleryWorkElement(work));
+    }
+}
+
+function removeWorkFromDom(workId) {
+    const galleryItem = gallery?.querySelector(`figure[data-id="${workId}"]`);
+    const modalItem = modalGallery?.querySelector(`.modal-gallery-item[data-id="${workId}"]`);
+
+    if (galleryItem) {
+        galleryItem.remove();
+    }
+
+    if (modalItem) {
+        modalItem.remove();
+    }
+}
+
+function syncGalleryWithCurrentFilter() {
+    displayWorks(getFilteredWorks());
+}
+
+/* ------------------------- */
+/* API                       */
+/* ------------------------- */
 
 async function fetchWorks() {
     try {
@@ -90,7 +165,7 @@ async function fetchWorks() {
         const works = await response.json();
         allWorks = works;
 
-        displayWorks(allWorks);
+        displayWorks(getFilteredWorks());
         displayModalWorks(allWorks);
     } catch (err) {
         console.error("Erreur fetchWorks :", err);
@@ -155,7 +230,7 @@ async function addWork(formData) {
 
     if (!token) {
         alert("Tu dois être connecté pour ajouter un projet.");
-        return false;
+        return null;
     }
 
     try {
@@ -171,34 +246,17 @@ async function addWork(formData) {
             throw new Error(`Erreur ajout : ${response.status}`);
         }
 
-        return true;
+        const newWork = await response.json();
+        return newWork;
     } catch (error) {
         console.error("Erreur addWork :", error);
-        return false;
+        return null;
     }
 }
 
-function initDeleteButtons() {
-    const deleteButtons = document.querySelectorAll(".delete-photo");
-
-    deleteButtons.forEach((button) => {
-        button.onclick = async () => {
-            const workId = button.dataset.id;
-            if (!workId) return;
-
-            const confirmDelete = confirm("Tu veux vraiment supprimer cette photo ?");
-            if (!confirmDelete) return;
-
-            const success = await deleteWork(workId);
-
-            if (success) {
-                await fetchWorks();
-            } else {
-                alert("Impossible de supprimer cette photo.");
-            }
-        };
-    });
-}
+/* ------------------------- */
+/* Filters                   */
+/* ------------------------- */
 
 function initFilters() {
     if (!buttons.length) return;
@@ -208,24 +266,14 @@ function initFilters() {
             buttons.forEach((b) => b.classList.remove("active"));
             btn.classList.add("active");
 
-            const filterName = btn.textContent.trim();
-
-            if (filterName === "Tous") {
-                displayWorks(allWorks);
-            } else if (filterName === "Objects") {
-                displayWorks(allWorks.filter((work) => work.categoryId === 1));
-            } else if (filterName === "Appartement") {
-                displayWorks(allWorks.filter((work) => work.categoryId === 2));
-            } else if (filterName === "Hotel & restaurants") {
-                displayWorks(allWorks.filter((work) => work.categoryId === 3));
-            }
+            syncGalleryWithCurrentFilter();
         });
     });
 }
 
-function isLoggedIn() {
-    return !!localStorage.getItem("token");
-}
+/* ------------------------- */
+/* Auth / edit mode          */
+/* ------------------------- */
 
 function updateAuthUi() {
     if (!authLink) return;
@@ -261,6 +309,10 @@ function updateEditModeUi() {
     }
 }
 
+/* ------------------------- */
+/* Modals                    */
+/* ------------------------- */
+
 function openGalleryModal() {
     if (!galleryModalOverlay) return;
     galleryModalOverlay.style.display = "flex";
@@ -294,6 +346,10 @@ function closeAllModals() {
     closeGalleryModal();
     closeAddPhotoModal();
 }
+
+/* ------------------------- */
+/* Add photo form            */
+/* ------------------------- */
 
 function resetAddPhotoForm() {
     if (addPhotoForm) {
@@ -353,6 +409,10 @@ function updateImagePreview(file) {
         imagePreview.src = event.target.result;
         imagePreview.style.display = "block";
         uploadPreviewContainer.classList.add("has-image");
+
+        if (defaultUploadIcon) defaultUploadIcon.style.display = "none";
+        if (uploadLabel) uploadLabel.style.display = "none";
+        if (uploadHelpText) uploadHelpText.style.display = "none";
     };
 
     reader.readAsDataURL(file);
@@ -416,11 +476,15 @@ function initAddPhotoForm() {
             formData.append("title", title);
             formData.append("category", category);
 
-            const success = await addWork(formData);
+            const newWork = await addWork(formData);
 
-            if (success) {
+            if (newWork) {
+                allWorks.push(newWork);
+                addWorkToDom(newWork);
+
                 resetAddPhotoForm();
-                await fetchWorks();
+
+                // On ferme la modal d'ajout et on affiche l'autre modal
                 addPhotoOverlay.style.display = "none";
                 galleryModalOverlay.style.display = "flex";
             } else {
@@ -429,6 +493,48 @@ function initAddPhotoForm() {
         });
     }
 }
+
+/* ------------------------- */
+/* Delete with delegation    */
+/* ------------------------- */
+
+function initModalGalleryDelete() {
+    if (!modalGallery) return;
+
+    modalGallery.addEventListener("click", async (e) => {
+        const deleteBtn = e.target.closest(".delete-photo");
+        if (!deleteBtn) return;
+
+        e.preventDefault();
+        e.stopPropagation();
+
+        const workId = Number(deleteBtn.dataset.id);
+        if (!workId) return;
+
+        const success = await deleteWork(workId);
+
+        if (!success) {
+            alert("Impossible de supprimer cette photo.");
+            return;
+        }
+
+        allWorks = allWorks.filter((work) => work.id !== workId);
+
+        const modalItem = modalGallery.querySelector(`.modal-gallery-item[data-id="${workId}"]`);
+        if (modalItem) {
+            modalItem.remove();
+        }
+
+        const galleryItem = gallery.querySelector(`figure[data-id="${workId}"]`);
+        if (galleryItem) {
+            galleryItem.remove();
+        }
+    });
+}
+
+/* ------------------------- */
+/* Modal events              */
+/* ------------------------- */
 
 function initModal() {
     if (editProjectsBtn) {
@@ -474,12 +580,17 @@ function initModal() {
     }
 }
 
+/* ------------------------- */
+/* Init                      */
+/* ------------------------- */
+
 async function init() {
     updateAuthUi();
     updateEditModeUi();
     initModal();
     initFilters();
     initAddPhotoForm();
+    initModalGalleryDelete();
     await fetchCategories();
     await fetchWorks();
 }
