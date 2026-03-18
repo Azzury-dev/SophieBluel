@@ -31,7 +31,7 @@ form.addEventListener("submit", async (e) => {
 
     const isLoggedIn = await login(email, password);
     if (isLoggedIn) {
-        window.location.href = "/index.html";
+        window.location.href = "./index.html";
     } else {
         alert("Email ou mot de passe incorrect");
     }
